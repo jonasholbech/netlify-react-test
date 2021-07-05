@@ -1,18 +1,14 @@
 import "./App.css";
-import { useEffect, useState } from "react";
+import useFetch from "./hooks/useFetch";
+/*import { basic } from "./helpers/defaults";*/
 function App() {
-  const [data, setData] = useState({});
-  useEffect(() => {
-    async function getData() {
-      const res = await fetch("/api/simple");
-      setData(await res.json());
-    }
-    getData();
-  }, []);
+  const { data, loading, error } = useFetch("/api/simple");
   return (
     <div className="App">
       <header className="App-header">
-        <p>{data.message}</p>
+        <p>{data && data.message}</p>
+        <p>{loading && "Loading"}</p>
+        <p>{error && error.message}</p>
       </header>
     </div>
   );
