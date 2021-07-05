@@ -1,13 +1,8 @@
 require("dotenv").config();
 exports.handler = async function (event, context) {
-  console.log(event);
-  console.log(context);
-  const uri = process.env.A;
+  const myVar = process.env.VAR_NAME;
   return {
     statusCode: 200,
-    body: JSON.stringify([
-      { name: "Jonas " + uri, status: "Married" },
-      { name: "Dannie", status: "In a relationship" },
-    ]),
+    body: JSON.stringify({ message: "And so it begins " + myVar }),
   };
 };

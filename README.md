@@ -43,10 +43,22 @@ exports.handler = async function (event, context) {
 ## Add ENV vars
 
 1. Add `.env` to `.gitignore`
-2. Not sure this is needed: `npm install dotenv --save-dev`
+2. Not needed unless you need it elsewhere, Netlify (or CRA) does it for us: `npm install dotenv --save-dev`
 3. Add your variables to `.env`
 4. "mirror" the variables to Netlify using either of these:
    - through the GUI (site Settings => Build & Deploy => Environment)
-   - netlify env:set VAR_NAME value
+   - `netlify env:set VAR_NAME value`
+5. use the vars in `functions/`:
+
+```js
+require("dotenv").config();
+exports.handler = async function (event, context) {
+  const myVar = process.env.VAR_NAME;
+  return {
+    statusCode: 200,
+    body: JSON.stringify({ message: "And so it begins " + myVar }),
+  };
+};
+```
 
 ## Netlify identity
