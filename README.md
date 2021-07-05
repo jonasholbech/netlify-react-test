@@ -1,7 +1,7 @@
 # steps
 
 1. `npx create-react-app projectname`
-2. `npm install netlify-cli`
+2. `yarn add netlify-cli --dev`
 3. `push to github`
 4. `mkdir functions`
 5. `touch netlify.toml`
@@ -38,7 +38,7 @@ exports.handler = async function (event, context) {
 };
 ```
 
-11. Run your dev server: `npm run local-start`
+11. Run your dev server: `yarn local-start`
 
 ## Add ENV vars
 
@@ -47,7 +47,7 @@ exports.handler = async function (event, context) {
 3. Add your variables to `.env`
 4. "mirror" the variables to Netlify using either of these:
    - through the GUI (site Settings => Build & Deploy => Environment)
-   - `netlify env:set VAR_NAME value`
+   - `npx netlify env:set VAR_NAME value`
 5. use the vars in `functions/`:
 
 ```js
@@ -62,3 +62,5 @@ exports.handler = async function (event, context) {
 ```
 
 ## Netlify identity
+
+## Routing and protected paths
