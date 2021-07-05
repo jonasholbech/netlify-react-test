@@ -13,7 +13,7 @@ function App() {
     <div className="App">
       <header className="App-header">
         {data.map((el) => {
-          return <p>{el.name}</p>;
+          return <p key={el.name}>{el.name}</p>;
         })}
       </header>
     </div>
