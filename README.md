@@ -47,8 +47,9 @@ exports.handler = async function (event, context) {
 3. Add your variables to `.env`
 4. "mirror" the variables to Netlify using either of these:
    - through the GUI (site Settings => Build & Deploy => Environment)
-   - `npx netlify env:set VAR_NAME value`
+   - `npx netlify env:set VAR_NAME remote value`
 5. use the vars in `functions/`:
+6. If changing a variable, I think you need to trigger a new deploy
 
 ```js
 require("dotenv").config();
