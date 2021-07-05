@@ -22,7 +22,7 @@
   status = 200
 ```
 
-7. add `"local-start": "netlify dev"` to scripts in package.json
+7. add `"local-start": "netlify dev"` to scripts in `package.json`
 8. `npx netlify init`
 9. `touch functions/simple.js`
 10. add the following:
@@ -39,3 +39,14 @@ exports.handler = async function (event, context) {
 ```
 
 11. Run your dev server: `npm run local-start`
+
+## Add ENV vars
+
+1. Add `.env` to `.gitignore`
+2. Not sure this is needed: `npm install dotenv --save-dev`
+3. Add your variables to `.env`
+4. "mirror" the variables to Netlify using either of these:
+   - through the GUI (site Settings => Build & Deploy => Environment)
+   - netlify env:set VAR_NAME value
+
+## Netlify identity
