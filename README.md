@@ -2,6 +2,7 @@
 
 - clean up the auth (App.js, split into components / modules)
 - add database
+-
 
 # steps
 
@@ -255,8 +256,6 @@ export default function Test() {
 }
 ```
 
-## Passing authentication to serverless functions
-
 ## Identity serverless functions (like hooks)
 
 We have three hooks (not React hooks) we can use when the user interacts with Netlify Identity:
@@ -267,8 +266,57 @@ https://docs.netlify.com/visitor-access/identity/registration-login/#trigger-ser
 
 ## Add a database
 
-### DBAAS?
+### MongoDB Atlas
+
+1. Go to https://mongodb.com and sign in/up
+2. Create a new Project
+3. Create a new cluster (I chose AWS/Frankfurt)
+4. Click connect to cluster
+5. Allow access from anywhere (We can not get the IP for Netlify)
+6. Create a Database User
+   - remember that password
+7. Choose a connection method (I chose Connect your application)
+8. Copy the connection string and add it to `.env` as MONGO_ATLAS_KEY or something
+9. Replace the &lt;password&gt; with the password you chose
+10. Replace the `myFirstDatabase` with then name of your database (i chose to use sample data and set it to `sample_restaurants`)
+11. Copy the "Include full driver code example" and paste it in `functions/firstdbcall.js`
+12. Use the env variable instead of the connection string
+
+```js
+// functions/firstdbcall.js
+require("dotenv").config();
+const { MongoClient } = require("mongodb");
+exports.handler = async function (event, context) {
+  //const { user } = context.clientContext;
+  const uri = process.env.MONGO_ATLAS_KEY;
+  const client = await MongoClient.connect(uri, {
+    useUnifiedTopology: true,
+    useNewUrlParser: true,
+  });
+  const db = client.db("sample_restaurants");
+  const all = await db
+    .collection("restaurants")
+    .find({ cuisine: "American" })
+    .skip(0)
+    .limit(20)
+    .toArray();
+  client.close();
+  return {
+    statusCode: 200,
+    body: JSON.stringify(all),
+  };
+};
+```
+
+12. In your cluster, click collections and then "Load a Sample Dataset", it takes a while :)
+13. install mongodb `yarn add mongodb`
+14. Restart the dev server
+15. Add the connection string to Netlify ENV: `npx netlify env:set MONGO_ATLAS_KEY <connectionString>`
+16. TODO: add the env key to netlify
+17. TODO: test endpoint, simple fetch
+
+### Passing authentication to serverless functions
+
+## Notes
 
 - https://free-for.dev/#/?id=dbaas
-- fauna?
-- mongo lab?
