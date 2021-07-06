@@ -1,3 +1,8 @@
+# TODO:
+
+- clean up the auth (App.js, split into components / modules)
+- add database
+
 # steps
 
 1. `npx create-react-app projectname`
@@ -234,4 +239,36 @@ export default function Public() {
 }
 ```
 
-## Routing and protected paths
+12. Deploy you site and test the login. If you do not deploy, you can not confirm you email :-)
+13. Any component that you pass through `PrivateRoute` will have access to a user object through something along the following
+
+```js
+import netlifyIdentity from "netlify-identity-widget";
+export default function Test() {
+  const user = netlifyIdentity.currentUser();
+  console.log({ user });
+  return (
+    <p>
+      You are logged in as <b>{user.email}</b>
+    </p>
+  );
+}
+```
+
+## Passing authentication to serverless functions
+
+## Identity serverless functions (like hooks)
+
+We have three hooks (not React hooks) we can use when the user interacts with Netlify Identity:
+
+https://docs.netlify.com/visitor-access/identity/registration-login/#trigger-serverless-functions-on-identity-events
+
+### App Meta Data
+
+## Add a database
+
+### DBAAS?
+
+- https://free-for.dev/#/?id=dbaas
+- fauna?
+- mongo lab?

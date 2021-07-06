@@ -1,6 +1,7 @@
 import React from "react";
 import Protected from "./Protected";
 import Public from "./Public";
+import "./App.css";
 import netlifyIdentity from "netlify-identity-widget";
 import {
   BrowserRouter as Router,
@@ -20,7 +21,15 @@ import {
 function App() {
   return (
     <Router>
-      <div>
+      <div className="App-header">
+        <h1>Netlify identity and much more</h1>
+        <p>This is just a tutorial I made for myself</p>
+        <p>
+          You can see{" "}
+          <a href="https://github.com/jonasholbech/netlify-react-test">
+            the steps at GitHub
+          </a>
+        </p>
         <AuthButton />
         <ul>
           <li>
