@@ -5,7 +5,9 @@ export default function useFetch(url, options = null) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
+  //how do i use the passed down error? console.log res i første then?
   useEffect(() => {
+    console.log("re-render");
     setLoading(true);
     setData(null);
     setError(null);
@@ -26,8 +28,9 @@ export default function useFetch(url, options = null) {
       })
       .catch((err) => {
         setLoading(false);
-        setError(err);
+        setError(err.message);
       });
-  }, [url, options]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [url]);
   return { data, loading, error };
 }

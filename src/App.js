@@ -3,6 +3,7 @@ import Protected from "./Protected";
 import Public from "./Public";
 import "./App.css";
 import netlifyIdentity from "netlify-identity-widget";
+
 import {
   BrowserRouter as Router,
   Route,
@@ -10,6 +11,8 @@ import {
   Redirect,
   withRouter,
 } from "react-router-dom";
+
+console.log(netlifyIdentity);
 
 // copied straight from https://reacttraining.com/react-router/web/example/auth-workflow
 ////////////////////////////////////////////////////////////
@@ -47,9 +50,17 @@ function App() {
   );
 }
 
+//TODO: expires: https://github.com/netlify/netlify-identity-widget#usage
 const netlifyAuth = {
   isAuthenticated: false,
   user: null,
+  //this method was not part of the netlify example, but it checks if the user is logged in on page load
+  init() {
+    netlifyIdentity.on("init", (user) => {
+      this.isAuthenticated = true;
+      this.user = user;
+    });
+  },
   authenticate(callback) {
     this.isAuthenticated = true;
     netlifyIdentity.open();
@@ -67,7 +78,8 @@ const netlifyAuth = {
     });
   },
 };
-
+//call the added init function
+netlifyAuth.init();
 const AuthButton = withRouter(({ history }) =>
   netlifyAuth.isAuthenticated ? (
     <p>

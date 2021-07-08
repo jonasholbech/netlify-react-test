@@ -1,18 +1,25 @@
 require("dotenv").config();
 const { MongoClient } = require("mongodb");
 exports.handler = async function (event, context) {
-  //const { user } = context.clientContext;
+  const { user } = context.clientContext;
+  if (!user || !user.email) {
+    return {
+      statusCode: 403,
+      body: JSON.stringify({ error: "Not authorized" }),
+    };
+  }
   const uri = process.env.MONGO_ATLAS_KEY;
   const client = await MongoClient.connect(uri, {
     useUnifiedTopology: true,
     useNewUrlParser: true,
   });
-  const db = client.db("sample_restaurants");
+  const db = client.db("note_db");
   const all = await db
-    .collection("restaurants")
-    .find({ cuisine: "American" })
-    .skip(0)
-    .limit(20)
+    .collection("notes")
+    //.find()
+    .find({ author: user.user_metadata.full_name })
+    //.skip(0)
+    //.limit(2)
     .toArray();
   client.close();
   return {

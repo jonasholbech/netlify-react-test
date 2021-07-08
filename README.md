@@ -2,7 +2,9 @@
 
 - clean up the auth (App.js, split into components / modules)
 - add database
--
+- database for each user?
+  - Super easy, just point to a db that does not exist
+  - like: `const db = client.db("note_db_"+something);`
 
 # steps
 
@@ -135,6 +137,13 @@ function AuthExample() {
 const netlifyAuth = {
   isAuthenticated: false,
   user: null,
+  //this method was not part of the netlify example, but it checks if the user is logged in on page load
+  init() {
+    netlifyIdentity.on("init", (user) => {
+      this.isAuthenticated = true;
+      this.user = user;
+    });
+  },
   authenticate(callback) {
     this.isAuthenticated = true;
     netlifyIdentity.open();
@@ -152,6 +161,8 @@ const netlifyAuth = {
     });
   },
 };
+//call the added init function
+netlifyAuth.init();
 
 const AuthButton = withRouter(({ history }) =>
   netlifyAuth.isAuthenticated ? (
@@ -278,12 +289,12 @@ https://docs.netlify.com/visitor-access/identity/registration-login/#trigger-ser
 7. Choose a connection method (I chose Connect your application)
 8. Copy the connection string and add it to `.env` as MONGO_ATLAS_KEY or something
 9. Replace the &lt;password&gt; with the password you chose
-10. Replace the `myFirstDatabase` with then name of your database (i chose to use sample data and set it to `sample_restaurants`)
-11. Copy the "Include full driver code example" and paste it in `functions/firstdbcall.js`
+10. Replace the `myFirstDatabase` with then name of your database (i chose to create a database called `note_db`)
+11. Copy the "Include full driver code example" and paste it in `functions/first-db-call.js`
 12. Use the env variable instead of the connection string
 
 ```js
-// functions/firstdbcall.js
+// functions/first-db-call.js
 require("dotenv").config();
 const { MongoClient } = require("mongodb");
 exports.handler = async function (event, context) {
@@ -293,12 +304,138 @@ exports.handler = async function (event, context) {
     useUnifiedTopology: true,
     useNewUrlParser: true,
   });
-  const db = client.db("sample_restaurants");
+  const db = client.db("note_db");
+  const all = await db.collection("notes").find().toArray();
+  client.close();
+  return {
+    statusCode: 200,
+    body: JSON.stringify(all),
+  };
+};
+```
+
+12. In your cluster, click collections and then add a collection called `notes`
+13. Create your first dataentry with the following fields
+
+- author: String
+- note: String
+- created: Date
+- updated: Date
+
+14. install mongodb `yarn add mongodb`
+15. Restart the dev server
+16. Add the connection string to Netlify ENV: `npx netlify env:set MONGO_ATLAS_KEY <connectionString>`
+17. I created a hook for fetching data, but you can just use vanilla fetch, create this file:
+
+```js
+//src/hooks/useFetch.js
+import { useState, useEffect } from "react";
+
+export default function useFetch(url, options = null) {
+  const [data, setData] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    setLoading(true);
+    setData(null);
+    setError(null);
+    fetch(url, options)
+      .then((res) => {
+        if (!res.ok) {
+          if (res.status === 404) {
+            throw new Error("Ressource not found");
+          }
+          throw new Error("Request failed");
+        }
+        return res.json();
+      })
+      .then((res) => {
+        setLoading(false);
+        setError(null);
+        setData(res);
+      })
+      .catch((err) => {
+        setLoading(false);
+        setError(err);
+      });
+  }, []);
+  return { data, loading, error };
+}
+```
+
+17. Verify that you can fetch data:
+
+```js
+//src/Protected.js
+import netlifyIdentity from "netlify-identity-widget";
+import useFetch from "./hooks/useFetch";
+export default function Protected() {
+  const user = netlifyIdentity.currentUser();
+  //console.log({ user });
+  const { data, loading, error } = useFetch("/api/first-db-call");
+  return (
+    <div>
+      <h3>Protected Page</h3>
+      You are logged in as <b>{user.email}</b>
+      <section className="notes">
+        <header className="App-header">
+          {data &&
+            data.map((note) => {
+              return <p key={note._id}>{note.note}</p>;
+            })}
+          <p>{loading && "Loading"}</p>
+          <p>{error && JSON.stringify(error, null, 2)}</p>
+        </header>
+      </section>
+    </div>
+  );
+}
+```
+
+### Passing authentication to serverless functions
+
+The whole world can read our data through the `/api/first-db-call.js`. So, let's send along the user credentials and verify that the user is logged in
+
+1. change the `useFetch` call in `src/Protected.js` to include the user
+
+```js
+//src/Protected.js
+...
+const user = netlifyIdentity.currentUser();
+const bearer = "Bearer " + user.token.access_token;
+const { data, loading, error } = useFetch("/api/first-db-call", {
+headers: {
+    Authorization: bearer,
+    "Content-Type": "application/json",
+},
+});
+...
+```
+
+2. In `functions/first-db-call.js` check if the user exists, if he doesn't, send back a 403. Let's also make sure we only get the users own notes
+
+```js
+//functions/first-db-call.js
+require("dotenv").config();
+const { MongoClient } = require("mongodb");
+exports.handler = async function (event, context) {
+  const { user } = context.clientContext;
+  if (!user || !user.email) {
+    return {
+      statusCode: 403,
+      body: JSON.stringify({ error: "Not authorized" }),
+    };
+  }
+  const uri = process.env.MONGO_ATLAS_KEY;
+  const client = await MongoClient.connect(uri, {
+    useUnifiedTopology: true,
+    useNewUrlParser: true,
+  });
+  const db = client.db("note_db");
   const all = await db
-    .collection("restaurants")
-    .find({ cuisine: "American" })
-    .skip(0)
-    .limit(20)
+    .collection("notes")
+    .find({ author: user.user_metadata.full_name })
     .toArray();
   client.close();
   return {
@@ -308,15 +445,174 @@ exports.handler = async function (event, context) {
 };
 ```
 
-12. In your cluster, click collections and then "Load a Sample Dataset", it takes a while :)
-13. install mongodb `yarn add mongodb`
-14. Restart the dev server
-15. Add the connection string to Netlify ENV: `npx netlify env:set MONGO_ATLAS_KEY <connectionString>`
-16. TODO: add the env key to netlify
-17. TODO: test endpoint, simple fetch
+## CRUD
 
-### Passing authentication to serverless functions
+We've got Read covered already
+
+### Create / Insert
+
+1. A new endpoint:
+
+```js
+//functions/add-note.js
+require("dotenv").config();
+exports.handler = async function (event, context) {
+  const { user } = context.clientContext;
+  console.log(user);
+  if (!user) {
+    return {
+      statusCode: 403,
+      body: JSON.stringify({ error: "Not authorized" }),
+    };
+  }
+  const MongoClient = require("mongodb").MongoClient;
+  const uri = process.env.MONGO_ATLAS_KEY;
+  const client = await MongoClient.connect(uri, {
+    useUnifiedTopology: true,
+    useNewUrlParser: true,
+  });
+  const db = client.db("note_db");
+  const body = JSON.parse(event.body);
+  const note = await db
+    .collection("notes")
+    .insertOne({
+      author: user.user_metadata.full_name,
+      note: body.note,
+      created: Date.now(),
+      updated: Date.now(),
+    })
+    .then(({ ops }) => ops[0]);
+  client.close();
+  return {
+    statusCode: 200,
+    body: JSON.stringify(note),
+  };
+};
+```
+
+```js
+//src/Protected.js
+import netlifyIdentity from "netlify-identity-widget";
+import useFetch from "./hooks/useFetch";
+export default function Protected() {
+  const user = netlifyIdentity.currentUser();
+  const bearer = "Bearer " + user.token.access_token;
+  ...
+
+  async function addNote() {
+    const bearer = "Bearer " + user.token.access_token;
+    const response = await fetch("/api/add-note", {
+      method: "post",
+      headers: {
+        Authorization: bearer,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        note: "Lorem ipsum",
+      }),
+    });
+    const data = await response.json();
+    console.log(data);
+  }
+  return (
+    <div>
+      ...
+        <button onClick={addNote}>Add Note</button>
+        ...
+      </section>
+    </div>
+  );
+}
+
+```
+
+### Delete
+
+1. First we need an endpoint that can delete notes
+
+```js
+//functions/delete-note.js
+require("dotenv").config();
+const ObjectId = require("mongodb").ObjectId;
+
+exports.handler = async function (event, context) {
+  const { user } = context.clientContext;
+  if (!user || !user.email) {
+    return {
+      statusCode: 403,
+      body: JSON.stringify({ error: "Not authorized" }),
+    };
+  }
+  const MongoClient = require("mongodb").MongoClient;
+  const uri = process.env.MONGO_ATLAS_KEY;
+  const client = await MongoClient.connect(uri, {
+    useUnifiedTopology: true,
+    useNewUrlParser: true,
+  });
+  const db = client.db("note_db");
+  const body = JSON.parse(event.body);
+  const o_id = ObjectId(body._id);
+  const all = await db.collection("notes").deleteOne({ _id: o_id });
+  client.close();
+  return {
+    statusCode: 200,
+    body: JSON.stringify(all),
+  };
+};
+```
+
+2. then we need to call the endpoint, passing an id
+
+```js
+//src/Protected.js
+import netlifyIdentity from "netlify-identity-widget";
+import useFetch from "./hooks/useFetch";
+export default function Protected() {
+  const user = netlifyIdentity.currentUser();
+  ...
+  async function deleteNote(_id) {
+    const bearer = "Bearer " + user.token.access_token;
+    const response = await fetch("/api/delete-note", {
+      method: "post",
+      headers: {
+        Authorization: bearer,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ _id }),
+    });
+    const data = await response.json();
+    if (data.deletedCount > 0) {
+      console.log(data);
+      //update state
+    } else {
+      console.error("SOMETHING BAD HAPPENED");
+    }
+  }
+  return (
+    <div>
+      ...
+          {data &&
+            data.map((note) => {
+              return (
+                <article>
+                  <p key={note._id}>{note.note}</p>
+                  <button onClick={() => deleteNote(note._id)}>Delete</button>
+                </article>
+              );
+            })}
+         ...
+    </div>
+  );
+}
+```
+
+### Update
 
 ## Notes
 
 - https://free-for.dev/#/?id=dbaas
+- artiklen fra telefonen
+
+```
+
+```
