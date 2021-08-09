@@ -1,9 +1,6 @@
 import React from "react";
-import Protected from "./Protected";
-import Public from "./Public";
-import "./App.css";
 import netlifyIdentity from "netlify-identity-widget";
-
+import netlifyAuth from "./helpers/netlifyAuth";
 import {
   BrowserRouter as Router,
   Route,
@@ -12,8 +9,13 @@ import {
   withRouter,
 } from "react-router-dom";
 
-console.log(netlifyIdentity);
+import PrivateRoute from "./auth/PrivateRoute";
+import Login from "./auth/Login";
+import Protected from "./pages/Protected";
+import Public from "./pages/Public";
 
+import "./App.css";
+netlifyAuth.init();
 // copied straight from https://reacttraining.com/react-router/web/example/auth-workflow
 ////////////////////////////////////////////////////////////
 // 1. Click the public page
@@ -64,36 +66,7 @@ if (currentUser) {
     // show login
 }
 */
-const netlifyAuth = {
-  isAuthenticated: false,
-  user: null,
-  //this method was not part of the netlify example, but it checks if the user is logged in on page load
-  //TODO: noget med refresh token
-  init() {
-    netlifyIdentity.on("init", (user) => {
-      this.isAuthenticated = true;
-      this.user = user;
-    });
-  },
-  authenticate(callback) {
-    this.isAuthenticated = true;
-    netlifyIdentity.open();
-    netlifyIdentity.on("login", (user) => {
-      this.user = user;
-      callback(user);
-    });
-  },
-  signout(callback) {
-    this.isAuthenticated = false;
-    netlifyIdentity.logout();
-    netlifyIdentity.on("logout", () => {
-      this.user = null;
-      callback();
-    });
-  },
-};
-//call the added init function
-netlifyAuth.init();
+
 const AuthButton = withRouter(({ history }) =>
   netlifyAuth.isAuthenticated ? (
     <p>
@@ -111,47 +84,4 @@ const AuthButton = withRouter(({ history }) =>
   )
 );
 
-function PrivateRoute({ component: Component, ...rest }) {
-  return (
-    <Route
-      {...rest}
-      render={(props) =>
-        netlifyAuth.isAuthenticated ? (
-          <Component {...props} />
-        ) : (
-          <Redirect
-            to={{
-              pathname: "/login",
-              state: { from: props.location },
-            }}
-          />
-        )
-      }
-    />
-  );
-}
-
-class Login extends React.Component {
-  state = { redirectToReferrer: false };
-
-  login = () => {
-    netlifyAuth.authenticate(() => {
-      this.setState({ redirectToReferrer: true });
-    });
-  };
-
-  render() {
-    let { from } = this.props.location.state || { from: { pathname: "/" } };
-    let { redirectToReferrer } = this.state;
-
-    if (redirectToReferrer) return <Redirect to={from} />;
-
-    return (
-      <div>
-        <p>You must log in to view the page at {from.pathname}</p>
-        <button onClick={this.login}>Log in</button>
-      </div>
-    );
-  }
-}
 export default App;

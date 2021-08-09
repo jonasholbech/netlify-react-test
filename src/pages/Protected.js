@@ -1,5 +1,5 @@
 import netlifyIdentity from "netlify-identity-widget";
-import useFetch from "./hooks/useFetch";
+import useFetch from "../hooks/useFetch";
 export default function Protected() {
   const user = netlifyIdentity.currentUser();
   console.log(user.user_metadata.full_name);
