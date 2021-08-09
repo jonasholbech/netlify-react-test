@@ -1,5 +1,5 @@
 import { Route, Redirect } from "react-router-dom";
-import netlifyAuth from "../helpers/netlifyAuth";
+import netlifyAuth from "./netlifyAuth";
 
 export default function PrivateRoute({ component: Component, ...rest }) {
   return (

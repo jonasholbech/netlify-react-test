@@ -1,7 +1,7 @@
 import React from "react";
 import { Redirect } from "react-router-dom";
 
-import netlifyAuth from "../helpers/netlifyAuth";
+import netlifyAuth from "./netlifyAuth";
 export default class Login extends React.Component {
   state = { redirectToReferrer: false };
 

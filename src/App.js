@@ -1,11 +1,9 @@
 import React from "react";
-import netlifyIdentity from "netlify-identity-widget";
-import netlifyAuth from "./helpers/netlifyAuth";
+import netlifyAuth from "./auth/netlifyAuth";
 import {
   BrowserRouter as Router,
   Route,
   Link,
-  Redirect,
   withRouter,
 } from "react-router-dom";
 

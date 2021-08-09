@@ -1,10 +1,11 @@
 import netlifyIdentity from "netlify-identity-widget";
 import useFetch from "../hooks/useFetch";
+
 export default function Protected() {
   const user = netlifyIdentity.currentUser();
   console.log(user.user_metadata.full_name);
   const bearer = "Bearer " + user.token.access_token;
-  const { data, loading, error } = useFetch("/api/first-db-call", {
+  const { data, setData, loading, error } = useFetch("/api/first-db-call", {
     headers: {
       Authorization: bearer,
       "Content-Type": "application/json",
@@ -24,6 +25,7 @@ export default function Protected() {
       }),
     });
     const data = await response.json();
+    setData((oldData) => oldData.concat(data));
     console.log(data);
   }
   async function deleteNote(_id) {
@@ -40,6 +42,35 @@ export default function Protected() {
     if (data.deletedCount > 0) {
       console.log(data);
       //update state
+      setData((old) => old.filter((entry) => entry._id !== _id));
+    } else {
+      console.error("SOMETHING BAD HAPPENED");
+    }
+  }
+  async function updateNote(_id, body) {
+    console.log("received:", _id, body);
+    const bearer = "Bearer " + user.token.access_token;
+    const response = await fetch("/api/update-note", {
+      method: "post",
+      headers: {
+        Authorization: bearer,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ _id, note: body }),
+    });
+    const data = await response.json();
+    console.log(data);
+    if (data.ok === 1) {
+      console.log(data);
+      //update state
+      setData((old) =>
+        old.map((entry) => {
+          if (entry._id === _id) {
+            return data.value;
+          }
+          return entry;
+        })
+      );
     } else {
       console.error("SOMETHING BAD HAPPENED");
     }
@@ -53,9 +84,12 @@ export default function Protected() {
           {data &&
             data.map((note) => {
               return (
-                <article>
-                  <p key={note._id}>{note.note}</p>
+                <article key={note._id}>
+                  <p>{note.note}</p>
                   <button onClick={() => deleteNote(note._id)}>Delete</button>
+                  <button onClick={() => updateNote(note._id, "test")}>
+                    Update
+                  </button>
                 </article>
               );
             })}

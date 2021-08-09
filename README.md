@@ -1,6 +1,7 @@
 # TODO:
 
-- clean up the auth (App.js, split into components / modules)
+- https://www.mongodb.com/community/forums/t/node-js-returnnewdocument-true-not-working/14013
+  - db calls looks cleaner (first example)
 - add database
 - database for each user?
   - Super easy, just point to a db that does not exist
@@ -95,17 +96,22 @@ netlifyIdentity.init();
 9. `App.js`
 
 ```js
-import Protected from "./Protected";
-import Public from "./Public";
-import netlifyIdentity from "netlify-identity-widget";
+import React from "react";
+import netlifyAuth from "./auth/netlifyAuth";
 import {
   BrowserRouter as Router,
   Route,
   Link,
-  Redirect,
   withRouter,
 } from "react-router-dom";
 
+import PrivateRoute from "./auth/PrivateRoute";
+import Login from "./auth/Login";
+import Protected from "./pages/Protected";
+import Public from "./pages/Public";
+
+import "./App.css";
+netlifyAuth.init();
 // copied straight from https://reacttraining.com/react-router/web/example/auth-workflow
 ////////////////////////////////////////////////////////////
 // 1. Click the public page
@@ -113,10 +119,18 @@ import {
 // 3. Log in
 // 4. Click the back button, note the URL each time
 
-function AuthExample() {
+function App() {
   return (
     <Router>
-      <div>
+      <div className="App-header">
+        <h1>Netlify identity and much more</h1>
+        <p>This is just a tutorial I made for myself</p>
+        <p>
+          You can see{" "}
+          <a href="https://github.com/jonasholbech/netlify-react-test">
+            the steps at GitHub
+          </a>
+        </p>
         <AuthButton />
         <ul>
           <li>
@@ -134,10 +148,35 @@ function AuthExample() {
   );
 }
 
+const AuthButton = withRouter(({ history }) =>
+  netlifyAuth.isAuthenticated ? (
+    <p>
+      Welcome!{" "}
+      <button
+        onClick={() => {
+          netlifyAuth.signout(() => history.push("/"));
+        }}
+      >
+        Sign out
+      </button>
+    </p>
+  ) : (
+    <p>You are not logged in.</p>
+  )
+);
+
+export default App;
+```
+
+10. `src/auth/netlifyAuth.js`
+
+```js
+import netlifyIdentity from "netlify-identity-widget";
 const netlifyAuth = {
   isAuthenticated: false,
   user: null,
   //this method was not part of the netlify example, but it checks if the user is logged in on page load
+  //TODO: noget med refresh token
   init() {
     netlifyIdentity.on("init", (user) => {
       this.isAuthenticated = true;
@@ -161,47 +200,18 @@ const netlifyAuth = {
     });
   },
 };
-//call the added init function
-netlifyAuth.init();
 
-const AuthButton = withRouter(({ history }) =>
-  netlifyAuth.isAuthenticated ? (
-    <p>
-      Welcome!{" "}
-      <button
-        onClick={() => {
-          netlifyAuth.signout(() => history.push("/"));
-        }}
-      >
-        Sign out
-      </button>
-    </p>
-  ) : (
-    <p>You are not logged in.</p>
-  )
-);
+export default netlifyAuth;
+```
 
-function PrivateRoute({ component: Component, ...rest }) {
-  return (
-    <Route
-      {...rest}
-      render={(props) =>
-        netlifyAuth.isAuthenticated ? (
-          <Component {...props} />
-        ) : (
-          <Redirect
-            to={{
-              pathname: "/login",
-              state: { from: props.location },
-            }}
-          />
-        )
-      }
-    />
-  );
-}
+11. `src/auth/Login.js`
 
-class Login extends React.Component {
+```js
+import React from "react";
+import { Redirect } from "react-router-dom";
+
+import netlifyAuth from "./netlifyAuth";
+export default class Login extends React.Component {
   state = { redirectToReferrer: false };
 
   login = () => {
@@ -224,26 +234,36 @@ class Login extends React.Component {
     );
   }
 }
-export default AuthExample;
 ```
 
-10. Create `Protected.js` and add
+12. Create `src/auth/PrivateRoute.js` and add
 
 ```js
-import netlifyIdentity from "netlify-identity-widget";
-export default function Protected() {
-  const user = netlifyIdentity.currentUser();
-  console.log({ user });
+import { Route, Redirect } from "react-router-dom";
+import netlifyAuth from "./netlifyAuth";
+
+export default function PrivateRoute({ component: Component, ...rest }) {
   return (
-    <div>
-      <h3>Protected Page</h3>
-      You are logged in as <b>{user.email}</b>
-    </div>
+    <Route
+      {...rest}
+      render={(props) =>
+        netlifyAuth.isAuthenticated ? (
+          <Component {...props} />
+        ) : (
+          <Redirect
+            to={{
+              pathname: "/login",
+              state: { from: props.location },
+            }}
+          />
+        )
+      }
+    />
   );
 }
 ```
 
-11. Create `Public.js` and add
+13. Create `src/pages/Public.js` and add
 
 ```js
 export default function Public() {
@@ -251,8 +271,27 @@ export default function Public() {
 }
 ```
 
-12. Deploy you site and test the login. If you do not deploy, you can not confirm your email :-)
-13. Any component that you pass through `PrivateRoute` will have access to a user object through something along the following
+14. Create `src/pages/Protected.js` and add
+
+```js
+import netlifyIdentity from "netlify-identity-widget";
+import useFetch from "../hooks/useFetch";
+
+export default function Protected() {
+  const user = netlifyIdentity.currentUser();
+  console.log(user.user_metadata.full_name);
+  return (
+    <div>
+      <h3>Protected Page</h3>
+      You are logged in as <b>{user.email}</b>
+      <section className="notes"></section>
+    </div>
+  );
+}
+```
+
+15. Deploy you site and test the login. If you do not deploy, you can not confirm your email :-)
+16. Any component that you pass through `PrivateRoute` will have access to a user object through something along the following
 
 ```js
 import netlifyIdentity from "netlify-identity-widget";
@@ -337,6 +376,7 @@ export default function useFetch(url, options = null) {
   const [error, setError] = useState(null);
 
   useEffect(() => {
+    console.log("re-render");
     setLoading(true);
     setData(null);
     setError(null);
@@ -357,23 +397,25 @@ export default function useFetch(url, options = null) {
       })
       .catch((err) => {
         setLoading(false);
-        setError(err);
+        setError(err.message);
       });
-  }, []);
-  return { data, loading, error };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [url]);
+  return { data, setData, loading, error };
 }
 ```
 
 17. Verify that you can fetch data:
 
 ```js
-//src/Protected.js
+//src/pages/Protected.js
 import netlifyIdentity from "netlify-identity-widget";
-import useFetch from "./hooks/useFetch";
+import useFetch from "../hooks/useFetch";
+
 export default function Protected() {
   const user = netlifyIdentity.currentUser();
-  //console.log({ user });
   const { data, loading, error } = useFetch("/api/first-db-call");
+
   return (
     <div>
       <h3>Protected Page</h3>
@@ -382,11 +424,17 @@ export default function Protected() {
         <header className="App-header">
           {data &&
             data.map((note) => {
-              return <p key={note._id}>{note.note}</p>;
+              return (
+                <article key={note._id}>
+                  <p>{note.note}</p>
+                </article>
+              );
             })}
+
           <p>{loading && "Loading"}</p>
           <p>{error && JSON.stringify(error, null, 2)}</p>
         </header>
+        <button onClick={addNote}>Add Note</button>
       </section>
     </div>
   );
@@ -491,13 +539,20 @@ exports.handler = async function (event, context) {
 ```
 
 ```js
-//src/Protected.js
+//src/pages/Protected.js
 import netlifyIdentity from "netlify-identity-widget";
-import useFetch from "./hooks/useFetch";
+import useFetch from "../hooks/useFetch";
+
 export default function Protected() {
   const user = netlifyIdentity.currentUser();
+  console.log(user.user_metadata.full_name);
   const bearer = "Bearer " + user.token.access_token;
-  ...
+  const { data, setData, loading, error } = useFetch("/api/first-db-call", {
+    headers: {
+      Authorization: bearer,
+      "Content-Type": "application/json",
+    },
+  });
 
   async function addNote() {
     const bearer = "Bearer " + user.token.access_token;
@@ -512,18 +567,20 @@ export default function Protected() {
       }),
     });
     const data = await response.json();
+    setData((oldData) => oldData.concat(data));
     console.log(data);
   }
   return (
     <div>
-      ...
-        <button onClick={addNote}>Add Note</button>
+      <h3>Protected Page</h3>
+      You are logged in as <b>{user.email}</b>
+      <section className="notes">
         ...
+        <button onClick={addNote}>Add Note</button>
       </section>
     </div>
   );
 }
-
 ```
 
 ### Delete
@@ -564,11 +621,21 @@ exports.handler = async function (event, context) {
 2. then we need to call the endpoint, passing an id
 
 ```js
-//src/Protected.js
+//src/pages/Protected.js
 import netlifyIdentity from "netlify-identity-widget";
-import useFetch from "./hooks/useFetch";
+import useFetch from "../hooks/useFetch";
+
 export default function Protected() {
   const user = netlifyIdentity.currentUser();
+  console.log(user.user_metadata.full_name);
+  const bearer = "Bearer " + user.token.access_token;
+  const { data, setData, loading, error } = useFetch("/api/first-db-call", {
+    headers: {
+      Authorization: bearer,
+      "Content-Type": "application/json",
+    },
+  });
+
   ...
   async function deleteNote(_id) {
     const bearer = "Bearer " + user.token.access_token;
@@ -584,34 +651,160 @@ export default function Protected() {
     if (data.deletedCount > 0) {
       console.log(data);
       //update state
+      setData((old) => old.filter((entry) => entry._id !== _id));
     } else {
       console.error("SOMETHING BAD HAPPENED");
     }
   }
   return (
     <div>
-      ...
+      <h3>Protected Page</h3>
+      You are logged in as <b>{user.email}</b>
+      <section className="notes">
+        <header className="App-header">
           {data &&
             data.map((note) => {
               return (
-                <article>
-                  <p key={note._id}>{note.note}</p>
+                <article key={note._id}>
+                  <p>{note.note}</p>
                   <button onClick={() => deleteNote(note._id)}>Delete</button>
                 </article>
               );
             })}
-         ...
+
+          <p>{loading && "Loading"}</p>
+          <p>{error && JSON.stringify(error, null, 2)}</p>
+        </header>
+        <button onClick={addNote}>Add Note</button>
+      </section>
+    </div>
+  );
+}
+
+```
+
+### Update
+
+1. First we need an endpoint that can update notes
+
+```js
+//functions/update-note.js
+require("dotenv").config();
+const ObjectId = require("mongodb").ObjectId;
+
+exports.handler = async function (event, context) {
+  const { user } = context.clientContext;
+  if (!user || !user.email) {
+    return {
+      statusCode: 403,
+      body: JSON.stringify({ error: "Not authorized" }),
+    };
+  }
+  const MongoClient = require("mongodb").MongoClient;
+  const uri = process.env.MONGO_ATLAS_KEY;
+  const client = await MongoClient.connect(uri, {
+    useUnifiedTopology: true,
+    useNewUrlParser: true,
+  });
+  const db = client.db("note_db");
+  const body = JSON.parse(event.body);
+  const o_id = ObjectId(body._id);
+  console.log(body);
+  const all = await db.collection("notes").findOneAndUpdate(
+    { author: user.user_metadata.full_name, _id: o_id },
+    {
+      $set: { note: body.note, updated: Date.now() },
+    },
+    { returnDocument: "after" }
+  );
+  client.close();
+  return {
+    statusCode: 200,
+    body: JSON.stringify(all),
+  };
+};
+```
+
+2. then we need to call the endpoint, passing an id
+
+```js
+//src/pages/Protected.js
+import netlifyIdentity from "netlify-identity-widget";
+import useFetch from "../hooks/useFetch";
+
+export default function Protected() {
+  const user = netlifyIdentity.currentUser();
+  console.log(user.user_metadata.full_name);
+  const bearer = "Bearer " + user.token.access_token;
+  const { data, setData, loading, error } = useFetch("/api/first-db-call", {
+    headers: {
+      Authorization: bearer,
+      "Content-Type": "application/json",
+    },
+  });
+
+  ...
+  async function updateNote(_id, body) {
+    console.log("received:", _id, body);
+    const bearer = "Bearer " + user.token.access_token;
+    const response = await fetch("/api/update-note", {
+      method: "post",
+      headers: {
+        Authorization: bearer,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ _id, note: body }),
+    });
+    const data = await response.json();
+    console.log(data);
+    if (data.ok === 1) {
+      console.log(data);
+      //update state
+      setData((old) =>
+        old.map((entry) => {
+          if (entry._id === _id) {
+            return data.value;
+          }
+          return entry;
+        })
+      );
+    } else {
+      console.error("SOMETHING BAD HAPPENED");
+    }
+  }
+  return (
+    <div>
+      <h3>Protected Page</h3>
+      You are logged in as <b>{user.email}</b>
+      <section className="notes">
+        <header className="App-header">
+          {data &&
+            data.map((note) => {
+              return (
+                <article key={note._id}>
+                  <p>{note.note}</p>
+                  <button onClick={() => deleteNote(note._id)}>Delete</button>
+                  <button onClick={() => updateNote(note._id, "test")}>
+                    Update
+                  </button>
+                </article>
+              );
+            })}
+
+          <p>{loading && "Loading"}</p>
+          <p>{error && JSON.stringify(error, null, 2)}</p>
+        </header>
+        <button onClick={addNote}>Add Note</button>
+      </section>
     </div>
   );
 }
 ```
 
-### Update
-
 ## Notes
 
 - https://free-for.dev/#/?id=dbaas
-- artiklen fra telefonen
+- artiklen fra telefonen??
 
 ```
 

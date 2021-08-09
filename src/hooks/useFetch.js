@@ -32,5 +32,5 @@ export default function useFetch(url, options = null) {
       });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [url]);
-  return { data, loading, error };
+  return { data, setData, loading, error };
 }
