@@ -51,10 +51,24 @@ function App() {
 }
 
 //TODO: expires: https://github.com/netlify/netlify-identity-widget#usage
+//https://github.com/netlify/netlify-identity-widget/issues/142
+//https://github.com/netlify/netlify-identity-widget/issues/358
+
+/*
+const currentUser = netlifyIdentity.currentUser();
+if (currentUser) {
+   currentUser.jwt().then(accessToken => {
+      // fetch the content that requires the access token
+   });
+} else {
+    // show login
+}
+*/
 const netlifyAuth = {
   isAuthenticated: false,
   user: null,
   //this method was not part of the netlify example, but it checks if the user is logged in on page load
+  //TODO: noget med refresh token
   init() {
     netlifyIdentity.on("init", (user) => {
       this.isAuthenticated = true;

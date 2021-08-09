@@ -251,7 +251,7 @@ export default function Public() {
 }
 ```
 
-12. Deploy you site and test the login. If you do not deploy, you can not confirm you email :-)
+12. Deploy you site and test the login. If you do not deploy, you can not confirm your email :-)
 13. Any component that you pass through `PrivateRoute` will have access to a user object through something along the following
 
 ```js
