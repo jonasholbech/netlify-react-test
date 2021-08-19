@@ -1,9 +1,12 @@
 import netlifyIdentity from "netlify-identity-widget";
 import useFetch from "../hooks/useFetch";
+import { getToken } from "../auth/netlifyAuth";
+//TODO: prøv at fjerne gettoken for nu, har pillet i netlifyAuth
 
 export default function Protected() {
   const user = netlifyIdentity.currentUser();
-  console.log(user.user_metadata.full_name);
+  //console.log(user.user_metadata.full_name);
+  //TODO: denne her kan ikke være async så jeg kan ikke bruge getToken
   const bearer = "Bearer " + user.token.access_token;
   const { data, setData, loading, error } = useFetch("/api/first-db-call", {
     headers: {
@@ -13,7 +16,9 @@ export default function Protected() {
   });
 
   async function addNote() {
-    const bearer = "Bearer " + user.token.access_token;
+    const token = await getToken();
+    const bearer = "Bearer " + token;
+    //const bearer = "Bearer " + user.token.access_token;
     const response = await fetch("/api/add-note", {
       method: "post",
       headers: {
@@ -29,7 +34,9 @@ export default function Protected() {
     console.log(data);
   }
   async function deleteNote(_id) {
-    const bearer = "Bearer " + user.token.access_token;
+    //const bearer = "Bearer " + user.token.access_token;
+    const token = await getToken();
+    const bearer = "Bearer " + token;
     const response = await fetch("/api/delete-note", {
       method: "post",
       headers: {
@@ -49,7 +56,9 @@ export default function Protected() {
   }
   async function updateNote(_id, body) {
     console.log("received:", _id, body);
-    const bearer = "Bearer " + user.token.access_token;
+    //const bearer = "Bearer " + user.token.access_token;
+    const token = await getToken();
+    const bearer = "Bearer " + token;
     const response = await fetch("/api/update-note", {
       method: "post",
       headers: {

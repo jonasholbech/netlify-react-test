@@ -2,7 +2,17 @@
 
 - https://www.mongodb.com/community/forums/t/node-js-returnnewdocument-true-not-working/14013
   - db calls looks cleaner (first example)
+  - this one too https://dev.to/moshe/implementing-access-control-with-netlify-identity-and-netlify-functions-3jpj
+- Check auth for multiple users
+- split db calls from Protected into module
+-
+- lazy load components
 - add database
+- efter lang itds ingenting siger den signed in men request failed, så noget med refresh token?
+  - sign out siger: Cookie “nf_jwt” has been rejected because it is already expired.
+  - Det her kunne være noget https://dev.to/moshe/implementing-access-control-with-netlify-identity-and-netlify-functions-3jpj
+  - skal jeg køre med `getToken`?
+- når alt virker, luk identity pop up efter sign in
 - database for each user?
   - Super easy, just point to a db that does not exist
   - like: `const db = client.db("note_db_"+something);`
@@ -180,6 +190,8 @@ const netlifyAuth = {
   init() {
     netlifyIdentity.on("init", (user) => {
       this.isAuthenticated = true;
+      //refresh token if needed (I think)
+      user.jwt();
       this.user = user;
     });
   },
@@ -224,8 +236,9 @@ export default class Login extends React.Component {
     let { from } = this.props.location.state || { from: { pathname: "/" } };
     let { redirectToReferrer } = this.state;
 
-    if (redirectToReferrer) return <Redirect to={from} />;
-
+    if (redirectToReferrer || netlifyAuth.isAuthenticated) {
+      return <Redirect to={from} />;
+    }
     return (
       <div>
         <p>You must log in to view the page at {from.pathname}</p>

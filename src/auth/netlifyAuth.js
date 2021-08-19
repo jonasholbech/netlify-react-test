@@ -1,4 +1,20 @@
 import netlifyIdentity from "netlify-identity-widget";
+
+export async function getToken() {
+  const currentUser = netlifyIdentity.currentUser();
+  if (!currentUser) {
+    return "";
+  }
+  const token1 = currentUser.token.access_token;
+  // fetchs new JWT token only if expired
+  await currentUser.jwt();
+  const token2 = currentUser.token.access_token;
+  if (token1 !== token2) {
+    console.log("updated token (expired)");
+  }
+  return currentUser.token.access_token;
+}
+
 const netlifyAuth = {
   isAuthenticated: false,
   user: null,
@@ -6,8 +22,14 @@ const netlifyAuth = {
   //TODO: noget med refresh token
   init() {
     netlifyIdentity.on("init", (user) => {
-      this.isAuthenticated = true;
-      this.user = user;
+      console.log("netlifyauth init: ", { user });
+      if (user) {
+        this.isAuthenticated = true;
+        //refresh token if needed (I think)
+        user.jwt();
+        console.log(user.token);
+        this.user = user;
+      }
     });
   },
   authenticate(callback) {
@@ -27,6 +49,7 @@ const netlifyAuth = {
     });
   },
 };
+
 //call the added init function
 
 export default netlifyAuth;
