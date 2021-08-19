@@ -17,7 +17,7 @@ exports.handler = async function (event, context) {
   const all = await db
     .collection("notes")
     //.find()
-    .find({ author: user.user_metadata.full_name })
+    .find({ authorId: user.sub })
     //.skip(0)
     //.limit(2)
     .toArray();

@@ -20,7 +20,7 @@ exports.handler = async function (event, context) {
   const o_id = ObjectId(body._id);
   console.log(body);
   const all = await db.collection("notes").findOneAndUpdate(
-    { author: user.user_metadata.full_name, _id: o_id },
+    { authorId: user.sub, _id: o_id },
     {
       $set: { note: body.note, updated: Date.now() },
     },

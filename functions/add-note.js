@@ -1,6 +1,7 @@
 require("dotenv").config();
 exports.handler = async function (event, context) {
   const { user } = context.clientContext;
+
   console.log(user);
   if (!user) {
     return {
@@ -20,6 +21,7 @@ exports.handler = async function (event, context) {
     .collection("notes")
     .insertOne({
       author: user.user_metadata.full_name,
+      authorId: user.sub,
       note: body.note,
       created: Date.now(),
       updated: Date.now(),

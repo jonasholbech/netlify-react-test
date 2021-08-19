@@ -18,7 +18,9 @@ exports.handler = async function (event, context) {
   const db = client.db("note_db");
   const body = JSON.parse(event.body);
   const o_id = ObjectId(body._id);
-  const all = await db.collection("notes").deleteOne({ _id: o_id });
+  const all = await db
+    .collection("notes")
+    .deleteOne({ _id: o_id, authorId: user.sub });
   client.close();
   return {
     statusCode: 200,

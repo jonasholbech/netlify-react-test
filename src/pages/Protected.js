@@ -1,7 +1,6 @@
 import netlifyIdentity from "netlify-identity-widget";
 import useFetch from "../hooks/useFetch";
 import { getToken } from "../auth/netlifyAuth";
-//TODO: prøv at fjerne gettoken for nu, har pillet i netlifyAuth
 
 export default function Protected() {
   const user = netlifyIdentity.currentUser();
@@ -14,7 +13,7 @@ export default function Protected() {
       "Content-Type": "application/json",
     },
   });
-
+  //TODO: de her funktioner er ikke opdateret i readme
   async function addNote() {
     const token = await getToken();
     const bearer = "Bearer " + token;

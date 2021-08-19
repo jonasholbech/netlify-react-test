@@ -496,7 +496,7 @@ exports.handler = async function (event, context) {
   const db = client.db("note_db");
   const all = await db
     .collection("notes")
-    .find({ author: user.user_metadata.full_name })
+    .find({ authorId: user.sub })
     .toArray();
   client.close();
   return {
@@ -519,6 +519,7 @@ We've got Read covered already
 require("dotenv").config();
 exports.handler = async function (event, context) {
   const { user } = context.clientContext;
+
   console.log(user);
   if (!user) {
     return {
@@ -538,6 +539,7 @@ exports.handler = async function (event, context) {
     .collection("notes")
     .insertOne({
       author: user.user_metadata.full_name,
+      authorId: user.sub,
       note: body.note,
       created: Date.now(),
       updated: Date.now(),
@@ -622,7 +624,9 @@ exports.handler = async function (event, context) {
   const db = client.db("note_db");
   const body = JSON.parse(event.body);
   const o_id = ObjectId(body._id);
-  const all = await db.collection("notes").deleteOne({ _id: o_id });
+  const all = await db
+    .collection("notes")
+    .deleteOne({ _id: o_id, authorId: user.sub });
   client.close();
   return {
     statusCode: 200,
@@ -724,7 +728,7 @@ exports.handler = async function (event, context) {
   const o_id = ObjectId(body._id);
   console.log(body);
   const all = await db.collection("notes").findOneAndUpdate(
-    { author: user.user_metadata.full_name, _id: o_id },
+    { authorId: user.sub, _id: o_id },
     {
       $set: { note: body.note, updated: Date.now() },
     },
