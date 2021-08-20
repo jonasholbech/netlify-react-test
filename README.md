@@ -447,7 +447,6 @@ export default function Protected() {
           <p>{loading && "Loading"}</p>
           <p>{error && JSON.stringify(error, null, 2)}</p>
         </header>
-        <button onClick={addNote}>Add Note</button>
       </section>
     </div>
   );
@@ -509,6 +508,19 @@ exports.handler = async function (event, context) {
 ## CRUD
 
 We've got Read covered already
+Let's add a helper funtion to renew our token. Add this to `auth/netlifyAuth.js`
+
+```js
+export async function getToken() {
+  const currentUser = netlifyIdentity.currentUser();
+  if (!currentUser) {
+    return "";
+  }
+  // fetchs new JWT token only if expired
+  await currentUser.jwt();
+  return currentUser.token.access_token;
+}
+```
 
 ### Create / Insert
 
@@ -557,6 +569,7 @@ exports.handler = async function (event, context) {
 //src/pages/Protected.js
 import netlifyIdentity from "netlify-identity-widget";
 import useFetch from "../hooks/useFetch";
+import { getToken } from "../auth/netlifyAuth";
 
 export default function Protected() {
   const user = netlifyIdentity.currentUser();
@@ -570,7 +583,8 @@ export default function Protected() {
   });
 
   async function addNote() {
-    const bearer = "Bearer " + user.token.access_token;
+    const token = await getToken();
+    const bearer = "Bearer " + token;
     const response = await fetch("/api/add-note", {
       method: "post",
       headers: {
@@ -641,6 +655,7 @@ exports.handler = async function (event, context) {
 //src/pages/Protected.js
 import netlifyIdentity from "netlify-identity-widget";
 import useFetch from "../hooks/useFetch";
+import { getToken } from "../auth/netlifyAuth";
 
 export default function Protected() {
   const user = netlifyIdentity.currentUser();
@@ -655,7 +670,8 @@ export default function Protected() {
 
   ...
   async function deleteNote(_id) {
-    const bearer = "Bearer " + user.token.access_token;
+    const token = await getToken();
+    const bearer = "Bearer " + token;
     const response = await fetch("/api/delete-note", {
       method: "post",
       headers: {
@@ -748,6 +764,7 @@ exports.handler = async function (event, context) {
 //src/pages/Protected.js
 import netlifyIdentity from "netlify-identity-widget";
 import useFetch from "../hooks/useFetch";
+import { getToken } from "../auth/netlifyAuth";
 
 export default function Protected() {
   const user = netlifyIdentity.currentUser();
@@ -763,7 +780,9 @@ export default function Protected() {
   ...
   async function updateNote(_id, body) {
     console.log("received:", _id, body);
-    const bearer = "Bearer " + user.token.access_token;
+    //const bearer = "Bearer " + user.token.access_token;
+    const token = await getToken();
+    const bearer = "Bearer " + token;
     const response = await fetch("/api/update-note", {
       method: "post",
       headers: {

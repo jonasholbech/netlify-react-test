@@ -6,6 +6,7 @@ export default function Protected() {
   const user = netlifyIdentity.currentUser();
   //console.log(user.user_metadata.full_name);
   //TODO: denne her kan ikke være async så jeg kan ikke bruge getToken
+  //Men det gør ikke noget, den kaldes efter netlifyAuth.init
   const bearer = "Bearer " + user.token.access_token;
   const { data, setData, loading, error } = useFetch("/api/first-db-call", {
     headers: {
@@ -13,7 +14,7 @@ export default function Protected() {
       "Content-Type": "application/json",
     },
   });
-  //TODO: de her funktioner er ikke opdateret i readme
+
   async function addNote() {
     const token = await getToken();
     const bearer = "Bearer " + token;
@@ -55,7 +56,6 @@ export default function Protected() {
   }
   async function updateNote(_id, body) {
     console.log("received:", _id, body);
-    //const bearer = "Bearer " + user.token.access_token;
     const token = await getToken();
     const bearer = "Bearer " + token;
     const response = await fetch("/api/update-note", {

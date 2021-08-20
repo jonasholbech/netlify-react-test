@@ -1,7 +1,10 @@
+//Jeg behøver ikke verificere jwt/token, netlify gør det når auth bearer er sat
+//https://answers.netlify.com/t/verify-user-in-node-js-backend/3916/5
 require("dotenv").config();
 const { MongoClient } = require("mongodb");
 exports.handler = async function (event, context) {
   const { user } = context.clientContext;
+  console.log(context);
   if (!user || !user.email) {
     return {
       statusCode: 403,
